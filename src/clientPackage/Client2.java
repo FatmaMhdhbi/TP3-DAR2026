@@ -5,57 +5,56 @@ import operationPackage.Operation;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Scanner;
 
-// Client de l'application calculatrice
 public class Client2 {
+
+    private static final int PORT = 1235;
 
     public static void main(String[] args) {
 
-        // Lire les données saisies par l'utilisateur
-        try (Scanner scanner = new Scanner(System.in)) {
+        String host = (args.length > 0) ? args[0] : "localhost";
 
-            System.out.print("Donner le premier nombre : ");
-            double a = scanner.nextDouble();
+        try (Socket socket = new Socket();
+             Scanner scanner = new Scanner(System.in)) {
 
-            System.out.print("Donner l'operateur (+, -, *, /) : ");
-            String operateur = scanner.next();
+            InetSocketAddress adresse =
+                    new InetSocketAddress(InetAddress.getByName(host), PORT);
+            socket.connect(adresse, 5000);
+            System.out.println("Connexion au serveur " + adresse + " réussie !");
 
-            System.out.print("Donner le deuxieme nombre : ");
-            double b = scanner.nextDouble();
+            // Ordre important : client crée d'abord le flux de sortie
+            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            oos.flush();
+            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 
-            // Créer l'objet contenant les données de l'opération
-            Operation op = new Operation(a, operateur, b);
+            while (true) {
+                System.out.print("Premier nombre (ou q pour quitter) : ");
+                String saisie = scanner.next();
+                if (saisie.equalsIgnoreCase("q")) {
+                    oos.writeObject("FIN");   // signaler la fin au serveur
+                    oos.flush();
+                    break;
+                }
+                double a = Double.parseDouble(saisie);
 
-            // Connexion au serveur sur le port 1235
-            try (Socket socket = new Socket("localhost", 1235)) {
+                System.out.print("Opérateur (+, -, *, /) : ");
+                String operateur = scanner.next();
 
-                System.out.println("Connexion au serveur réussie !");
+                System.out.print("Deuxième nombre : ");
+                double b = scanner.nextDouble();
 
-                // Envoyer l'objet Operation au serveur
-                ObjectOutputStream oos =
-                        new ObjectOutputStream(socket.getOutputStream());
-
-                oos.writeObject(op);
+                oos.writeObject(new Operation(a, operateur, b));
                 oos.flush();
 
-                // Recevoir la réponse du serveur
-                ObjectInputStream ois =
-                        new ObjectInputStream(socket.getInputStream());
-
-                // La réponse est un objet String
-                String resultat = (String) ois.readObject();
-
-                // Afficher le résultat
-                System.out.println("Réponse du serveur : " + resultat);
-
-                // Fermer les flux
-                ois.close();
-                oos.close();
+                String reponse = (String) ois.readObject();
+                System.out.println("Réponse du serveur : " + reponse);
             }
 
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException | NumberFormatException e) {
             System.out.println("Erreur du client : " + e.getMessage());
         }
     }

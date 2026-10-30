@@ -3,27 +3,34 @@ package clientPackage;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 
-// Classe du client
 public class Client {
+
+    private static final int PORT = 1234;
 
     public static void main(String[] args) {
 
-        // Connexion au serveur sur le port 1234
-        try (Socket socket = new Socket("localhost", 1234)) {
+        // Adresse du serveur : argument 1 (sinon localhost)
+        String host = (args.length > 0) ? args[0] : "localhost";
 
-            System.out.println("Connexion au serveur réussie !");
+        try (Socket socket = new Socket()) {
 
-            // Créer un flux pour recevoir le message du serveur
+            // Adresse distante = InetAddress + port
+            InetSocketAddress adresse =
+                    new InetSocketAddress(InetAddress.getByName(host), PORT);
+
+            // Connexion avec un délai maximum de 5 secondes
+            socket.connect(adresse, 5000);
+
+            System.out.println("Connexion au serveur " + adresse + " réussie !");
+
             BufferedReader br = new BufferedReader(
                     new InputStreamReader(socket.getInputStream()));
 
-            // Lire le numéro envoyé par le serveur
-            String message = br.readLine();
-
-            // Afficher le message reçu
-            System.out.println("Message du serveur : " + message);
+            System.out.println("Message du serveur : " + br.readLine());
 
         } catch (IOException e) {
             System.out.println("Erreur du client : " + e.getMessage());

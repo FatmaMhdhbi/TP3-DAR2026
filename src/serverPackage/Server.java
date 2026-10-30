@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 // Classe principale du serveur
 public class Server {
@@ -20,7 +22,6 @@ public class Server {
 
             // Le serveur reste actif pour accepter plusieurs clients
             while (true) {
-
                 // Attendre la connexion d'un nouveau client
                 Socket socket = serverSocket.accept();
 
@@ -52,7 +53,6 @@ class ClientProcess extends Thread {
     private Socket socket;
     private int numeroClient;
 
-    // Constructeur : recevoir la socket et le numéro du client
     public ClientProcess(Socket socket, int numeroClient) {
         this.socket = socket;
         this.numeroClient = numeroClient;
@@ -61,24 +61,32 @@ class ClientProcess extends Thread {
     @Override
     public void run() {
 
-        try {
-            // Créer un flux pour envoyer du texte au client
-            PrintWriter pw = new PrintWriter(
-                    socket.getOutputStream(), true);
-
-            // Envoyer au client son numéro de connexion
+        try (
+                PrintWriter pw = new PrintWriter(socket.getOutputStream(), true);
+                BufferedReader br = new BufferedReader(
+                        new InputStreamReader(socket.getInputStream()))
+        ) {
+            // Envoyer au client son numéro d'ordre
             pw.println("Vous êtes le client n°" + numeroClient);
+            System.out.println("Message envoyé au client n°" + numeroClient);
 
-            System.out.println("Message envoyé au client n°"
-                    + numeroClient);
-
-            // Fermer la connexion avec ce client
-            pw.close();
-            socket.close();
+            // Rester connecté jusqu'à la déconnexion du client (ou "quit")
+            String ligne;
+            while ((ligne = br.readLine()) != null) {
+                if (ligne.equalsIgnoreCase("quit")) {
+                    break;
+                }
+                System.out.println("Client n°" + numeroClient + " dit : " + ligne);
+                pw.println("Echo : " + ligne);
+            }
 
         } catch (IOException e) {
-            System.out.println("Erreur avec le client n°"
-                    + numeroClient + " : " + e.getMessage());
+            System.out.println("Erreur avec le client n°" + numeroClient
+                    + " : " + e.getMessage());
+        } finally {
+            System.out.println("Client n°" + numeroClient + " déconnecté");
+            try { socket.close(); } catch (IOException ignored) { }
         }
     }
 }
+

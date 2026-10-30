@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.io.EOFException;
 
 // Serveur multithread pour la calculatrice
 public class Server2 {
@@ -65,80 +66,66 @@ class ClientProcess2 extends Thread {
     public void run() {
 
         try (
-                // Recevoir l'objet Operation envoyé par le client
                 ObjectInputStream ois =
                         new ObjectInputStream(socket.getInputStream());
-
-                // Envoyer l'objet résultat au client
                 ObjectOutputStream oos =
                         new ObjectOutputStream(socket.getOutputStream())
         ) {
+            // Traiter les opérations de ce client jusqu'à "FIN" ou déconnexion
+            while (true) {
 
-            // Lire l'objet reçu
-            Operation op = (Operation) ois.readObject();
+                Object recu = ois.readObject();
 
-            // Récupérer les données de l'opération
-            double a = op.getA();
-            String operateur = op.getOperateur();
-            double b = op.getB();
-
-            // Calculer le résultat
-            double resultat;
-
-            switch (operateur) {
-                case "+":
-                    resultat = a + b;
+                // Tout objet autre qu'une Operation termine la session
+                if (!(recu instanceof Operation)) {
                     break;
+                }
 
-                case "-":
-                    resultat = a - b;
-                    break;
+                Operation op = (Operation) recu;
+                double a = op.getA();
+                String operateur = op.getOperateur();
+                double b = op.getB();
+                double resultat;
 
-                case "*":
-                    resultat = a * b;
-                    break;
-
-                case "/":
-                    if (b == 0) {
-                        oos.writeObject("Erreur : division par zero");
+                switch (operateur) {
+                    case "+": resultat = a + b; break;
+                    case "-": resultat = a - b; break;
+                    case "*": resultat = a * b; break;
+                    case "/":
+                        if (b == 0) {
+                            oos.writeObject("Erreur : division par zero");
+                            oos.flush();
+                            continue;
+                        }
+                        resultat = a / b;
+                        break;
+                    default:
+                        oos.writeObject("Erreur : operateur invalide");
                         oos.flush();
-                        return;
-                    }
-                    resultat = a / b;
-                    break;
+                        continue;
+                }
 
-                default:
-                    oos.writeObject("Erreur : operateur invalide");
-                    oos.flush();
-                    return;
+                // Compteur global : accès synchronisé
+                int numeroOperation = Server2.incrementerCompteur();
+
+                System.out.println("Opération n°" + numeroOperation
+                        + " [" + socket.getRemoteSocketAddress() + " / "
+                        + getName() + "] : "
+                        + a + " " + operateur + " " + b + " = " + resultat);
+
+                oos.writeObject("Résultat = " + resultat);
+                oos.flush();
             }
 
-            // Incrémenter le compteur global de manière synchronisée
-            int numeroOperation = Server2.incrementerCompteur();
-
-            // Afficher les informations dans la console du serveur
-            System.out.println("Opération n°" + numeroOperation
-                    + " : " + a + " " + operateur + " " + b
-                    + " = " + resultat);
-
-            // Envoyer le résultat au client
-            oos.writeObject("Résultat = " + resultat);
-            oos.flush();
-
+        } catch (EOFException e) {
+            // Le client s'est déconnecté : situation normale
         } catch (IOException | ClassNotFoundException e) {
-
             System.out.println("Erreur pendant le traitement du client : "
                     + e.getMessage());
-
         } finally {
-
-            // Fermer la connexion avec le client
-            try {
-                socket.close();
-            } catch (IOException e) {
-                System.out.println("Erreur de fermeture : "
-                        + e.getMessage());
-            }
+            System.out.println("Client déconnecté : "
+                    + socket.getRemoteSocketAddress());
+            try { socket.close(); } catch (IOException ignored) { }
         }
     }
 }
