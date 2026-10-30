@@ -132,27 +132,27 @@ Un serveur mono-thread traite un seul client à la fois, les autres attendent. E
 
 Serveur calculatrice en attente :
 
-![Serveur calculatrice en attente](Capture_d_écran_2026-10-30_201948.png)
+![Serveur calculatrice en attente](Capture_d_ecran_2026-10-30_201948.png)
 
 Client : 10 * 5 :
 
-![Client 10 * 5](Capture_d_écran_2026-10-30_202008.png)
+![Client 10 * 5](Capture_d_ecran_2026-10-30_202008.png)
 
 Console du serveur (opération n°1) :
 
-![Serveur opération 1](Capture_d_écran_2026-10-30_202013.png)
+![Serveur opération 1](Capture_d_ecran_2026-10-30_202013.png)
 
 Client : 20 + 7 :
 
-![Client 20 + 7](Capture_d_écran_2026-10-30_202034.png)
+![Client 20 + 7](Capture_d_ecran_2026-10-30_202034.png)
 
 Client : 15 - 4 :
 
-![Client 15 - 4](Capture_d_écran_2026-10-30_202057.png)
+![Client 15 - 4](Capture_d_ecran_2026-10-30_202057.png)
 
 Console du serveur après trois opérations (compteur 1, 2, 3 avec des ports clients différents) :
 
-![Serveur opération 3](Capture_d_écran_2026-10-30_202104.png)
+![Serveur opération 3](Capture_d_ecran_2026-10-30_202104.png)
 
 ### 5.3 Tests avec plusieurs clients en parallèle
 
